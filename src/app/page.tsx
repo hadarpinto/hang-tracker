@@ -322,10 +322,10 @@ export default function Home() {
       `_Sent from HangTrack at ${new Date().toLocaleTimeString()}_`;
 
     try {
-      const response = await fetch(currentState.slackWebhook, {
+      const response = await fetch("/api/slack", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: message }),
+        body: JSON.stringify({ webhookUrl: currentState.slackWebhook, message }),
       });
 
       if (response.ok) {
@@ -546,10 +546,10 @@ export default function Home() {
     }
 
     try {
-      const response = await fetch(state.slackWebhook, {
+      const response = await fetch("/api/slack", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: slackMessage }),
+        body: JSON.stringify({ webhookUrl: state.slackWebhook, message: slackMessage }),
       });
       
       if (response.ok) {
@@ -1396,11 +1396,12 @@ export default function Home() {
                           return;
                         }
                         try {
-                          const response = await fetch(state.slackWebhook, {
+                          const response = await fetch("/api/slack", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
-                              text: "✅ *HangTrack Test Message*\n\nYour Slack webhook is configured correctly! 🎉\n\n_This is a test message from HangTrack._"
+                              webhookUrl: state.slackWebhook,
+                              message: "✅ *HangTrack Test Message*\n\nYour Slack webhook is configured correctly! 🎉\n\n_This is a test message from HangTrack._"
                             }),
                           });
                           if (response.ok) {
