@@ -82,8 +82,8 @@ const generateId = (): string => Math.random().toString(36).substr(2, 9);
 // Mock data for demo
 const MOCK_PEOPLE: Person[] = [
   { id: "person1", name: "Hadar Pinto", slackId: "@hadarp", color: "#7c3aed" },
-  { id: "person2", name: "Yheonatan Zaritsky", slackId: "@yheonatan", color: "#ec4899" },
-  { id: "person3", name: "Roni Lippin", slackId: "@roni", color: "#06b6d4" },
+  { id: "person2", name: "Yehonatan Zaritsky", slackId: "@yehonatanz", color: "#ec4899" },
+  { id: "person3", name: "Roni Lippin", slackId: "@ronili", color: "#06b6d4" },
 ];
 
 const generateMockWorkouts = (): Workout[] => {
