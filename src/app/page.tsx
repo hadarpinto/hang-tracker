@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Timer,
   Users,
@@ -182,52 +182,19 @@ const generateMockWorkouts = (): Workout[] => {
   ];
 };
 
-// Initial state
-const getInitialState = (): AppState => {
-  if (typeof window !== "undefined") {
-    const saved = localStorage.getItem("hangtrack-data");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Ensure new fields have defaults
-      return {
-        people: parsed.people || [],
-        workouts: parsed.workouts || [],
-        slackWebhook: parsed.slackWebhook || "",
-        dailyReminderEnabled: parsed.dailyReminderEnabled ?? false,
-        reminderTime: parsed.reminderTime || "12:30",
-        lastReminderSent: parsed.lastReminderSent || "",
-      };
-    }
-    // No saved data - load mock data for demo
-    return {
-      people: MOCK_PEOPLE,
-      workouts: generateMockWorkouts(),
-      slackWebhook: "",
-      dailyReminderEnabled: false,
-      reminderTime: "12:30",
-      lastReminderSent: "",
-    };
-  }
-  return {
-    people: [],
-    workouts: [],
-    slackWebhook: "",
-    dailyReminderEnabled: false,
-    reminderTime: "12:30",
-    lastReminderSent: "",
-  };
+// Default state for SSR
+const DEFAULT_STATE: AppState = {
+  people: [],
+  workouts: [],
+  slackWebhook: "",
+  dailyReminderEnabled: false,
+  reminderTime: "12:30",
+  lastReminderSent: "",
 };
 
 export default function Home() {
   // App state
-  const [state, setState] = useState<AppState>({
-    people: [],
-    workouts: [],
-    slackWebhook: "",
-    dailyReminderEnabled: false,
-    reminderTime: "12:30",
-    lastReminderSent: "",
-  });
+  const [state, setState] = useState<AppState>(DEFAULT_STATE);
 
   // UI state
   const [activeTab, setActiveTab] = useState<"workout" | "group" | "analytics" | "settings">("workout");
@@ -244,7 +211,6 @@ export default function Home() {
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [showSlackModal, setShowSlackModal] = useState(false);
   const [slackMessage, setSlackMessage] = useState("");
-  const [slackRecipient, setSlackRecipient] = useState<string | null>(null);
   
   // Timer mode state
   const [timerMode, setTimerMode] = useState<"stopwatch" | "timer">("stopwatch");
@@ -257,7 +223,26 @@ export default function Home() {
   useEffect(() => {
     const saved = localStorage.getItem("hangtrack-data");
     if (saved) {
-      setState(JSON.parse(saved));
+      const parsed = JSON.parse(saved);
+      // Ensure all fields have defaults
+      setState({
+        people: parsed.people || [],
+        workouts: parsed.workouts || [],
+        slackWebhook: parsed.slackWebhook || "",
+        dailyReminderEnabled: parsed.dailyReminderEnabled ?? false,
+        reminderTime: parsed.reminderTime || "12:30",
+        lastReminderSent: parsed.lastReminderSent || "",
+      });
+    } else {
+      // No saved data - load mock data for demo
+      setState({
+        people: MOCK_PEOPLE,
+        workouts: generateMockWorkouts(),
+        slackWebhook: "",
+        dailyReminderEnabled: false,
+        reminderTime: "12:30",
+        lastReminderSent: "",
+      });
     }
   }, []);
 
@@ -311,19 +296,24 @@ export default function Home() {
     };
   }, [isTimerRunning, timerMode]);
 
+  // Ref to store the latest state for async operations
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
   // Send group reminder to Slack
   const sendGroupReminder = async (silent: boolean = false) => {
-    if (!state.slackWebhook) {
+    const currentState = stateRef.current;
+    if (!currentState.slackWebhook) {
       if (!silent) showNotification("error", "Please configure Slack webhook in settings");
       return false;
     }
 
-    if (state.people.length === 0) {
+    if (currentState.people.length === 0) {
       if (!silent) showNotification("error", "No people in the group to remind");
       return false;
     }
 
-    const peopleList = state.people.map((p) => `• ${p.name}${p.slackId ? ` (<@${p.slackId.replace('@', '')}>)` : ''}`).join('\n');
+    const peopleList = currentState.people.map((p) => `• ${p.name}${p.slackId ? ` (<@${p.slackId.replace('@', '')}>)` : ''}`).join('\n');
     
     const message = `🔔 *HangTrack Daily Reminder*\n\n` +
       `Hey team! It's time for your daily pull bar hang workout! 💪\n\n` +
@@ -332,7 +322,7 @@ export default function Home() {
       `_Sent from HangTrack at ${new Date().toLocaleTimeString()}_`;
 
     try {
-      const response = await fetch(state.slackWebhook, {
+      const response = await fetch(currentState.slackWebhook, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: message }),
@@ -358,12 +348,13 @@ export default function Home() {
     }
 
     const checkAndSendReminder = async () => {
+      const currentState = stateRef.current;
       const now = new Date();
       const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       const today = now.toISOString().split('T')[0];
 
       // Check if it's time to send reminder and haven't sent today
-      if (currentTime === state.reminderTime && state.lastReminderSent !== today) {
+      if (currentTime === currentState.reminderTime && currentState.lastReminderSent !== today) {
         const sent = await sendGroupReminder(true);
         if (sent) {
           setState((prev) => ({ ...prev, lastReminderSent: today }));
@@ -544,7 +535,6 @@ export default function Home() {
       `Keep up the great work! 💪`;
     
     setSlackMessage(defaultMessage);
-    setSlackRecipient(personId);
     setShowSlackModal(true);
   };
 
@@ -784,7 +774,7 @@ export default function Home() {
                     >
                       Cancel
                     </button>
-                  </div>
+        </div>
                 )}
 
                 {/* Main timer display */}
@@ -1124,7 +1114,7 @@ export default function Home() {
                           className="input-field"
                           autoFocus
                         />
-                      </div>
+    </div>
                       <div>
                         <label className="block text-sm font-medium mb-2 text-[var(--foreground-muted)]">
                           Slack Username (optional)
