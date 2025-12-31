@@ -84,6 +84,8 @@ const MOCK_PEOPLE: Person[] = [
   { id: "person1", name: "Hadar Pinto", slackId: "@hadarp", color: "#7c3aed" },
   { id: "person2", name: "Yehonatan Zaritsky", slackId: "@yehonatanz", color: "#ec4899" },
   { id: "person3", name: "Roni Lippin", slackId: "@ronili", color: "#06b6d4" },
+  { id: "person4", name: "Tomer Shkolnik", slackId: "@tomer", color: "#10b981" },
+  { id: "person5", name: "Omer Burshtein", slackId: "@omerb", color: "#f59e0b" },
 ];
 
 const generateMockWorkouts = (): Workout[] => {
@@ -107,60 +109,68 @@ const generateMockWorkouts = (): Workout[] => {
     {
       id: "w2",
       date: now - 12 * day,
-      participants: ["person1", "person2"],
+      participants: ["person1", "person2", "person4"],
       records: [
         { personId: "person1", duration: 48, timestamp: now - 12 * day },
         { personId: "person2", duration: 42, timestamp: now - 12 * day },
+        { personId: "person4", duration: 35, timestamp: now - 12 * day },
         { personId: "person1", duration: 44, timestamp: now - 12 * day },
         { personId: "person2", duration: 40, timestamp: now - 12 * day },
+        { personId: "person4", duration: 38, timestamp: now - 12 * day },
       ],
-      notes: "Double round today",
+      notes: "Tomer's first session!",
     },
     // Week 1 - Day 5
     {
       id: "w3",
       date: now - 10 * day,
-      participants: ["person1", "person3"],
+      participants: ["person1", "person3", "person5"],
       records: [
         { personId: "person1", duration: 51, timestamp: now - 10 * day },
         { personId: "person3", duration: 58, timestamp: now - 10 * day },
+        { personId: "person5", duration: 42, timestamp: now - 10 * day },
       ],
-      notes: "Roni crushing it!",
+      notes: "Omer joined the crew!",
     },
     // Week 2 - Day 1
     {
       id: "w4",
       date: now - 7 * day,
-      participants: ["person1", "person2", "person3"],
+      participants: ["person1", "person2", "person3", "person4", "person5"],
       records: [
         { personId: "person1", duration: 55, timestamp: now - 7 * day },
         { personId: "person2", duration: 48, timestamp: now - 7 * day },
         { personId: "person3", duration: 62, timestamp: now - 7 * day },
+        { personId: "person4", duration: 41, timestamp: now - 7 * day },
+        { personId: "person5", duration: 45, timestamp: now - 7 * day },
       ],
-      notes: "Week 2 starting strong",
+      notes: "Full team workout! 🔥",
     },
     // Week 2 - Day 3
     {
       id: "w5",
       date: now - 5 * day,
-      participants: ["person2", "person3"],
+      participants: ["person2", "person3", "person4"],
       records: [
         { personId: "person2", duration: 52, timestamp: now - 5 * day },
         { personId: "person3", duration: 65, timestamp: now - 5 * day },
+        { personId: "person4", duration: 44, timestamp: now - 5 * day },
         { personId: "person2", duration: 49, timestamp: now - 5 * day },
         { personId: "person3", duration: 60, timestamp: now - 5 * day },
+        { personId: "person4", duration: 47, timestamp: now - 5 * day },
       ],
-      notes: "Hadar was busy",
+      notes: "Tomer improving fast!",
     },
     // Week 2 - Day 5
     {
       id: "w6",
       date: now - 3 * day,
-      participants: ["person1", "person2", "person3"],
+      participants: ["person1", "person2", "person3", "person5"],
       records: [
         { personId: "person1", duration: 58, timestamp: now - 3 * day },
         { personId: "person2", duration: 55, timestamp: now - 3 * day },
         { personId: "person3", duration: 70, timestamp: now - 3 * day },
+        { personId: "person5", duration: 50, timestamp: now - 3 * day },
       ],
       notes: "New personal bests!",
     },
@@ -168,14 +178,18 @@ const generateMockWorkouts = (): Workout[] => {
     {
       id: "w7",
       date: now - 1 * day,
-      participants: ["person1", "person2", "person3"],
+      participants: ["person1", "person2", "person3", "person4", "person5"],
       records: [
         { personId: "person1", duration: 62, timestamp: now - 1 * day },
         { personId: "person2", duration: 58, timestamp: now - 1 * day },
         { personId: "person3", duration: 75, timestamp: now - 1 * day },
+        { personId: "person4", duration: 52, timestamp: now - 1 * day },
+        { personId: "person5", duration: 55, timestamp: now - 1 * day },
         { personId: "person1", duration: 55, timestamp: now - 1 * day },
         { personId: "person2", duration: 51, timestamp: now - 1 * day },
         { personId: "person3", duration: 68, timestamp: now - 1 * day },
+        { personId: "person4", duration: 48, timestamp: now - 1 * day },
+        { personId: "person5", duration: 52, timestamp: now - 1 * day },
       ],
       notes: "Great session, everyone improving!",
     },
