@@ -79,6 +79,109 @@ const formatDate = (timestamp: number): string => {
 
 const generateId = (): string => Math.random().toString(36).substr(2, 9);
 
+// Mock data for demo
+const MOCK_PEOPLE: Person[] = [
+  { id: "person1", name: "Hadar Pinto", slackId: "@hadarp", color: "#7c3aed" },
+  { id: "person2", name: "Yheonatan Zaritsky", slackId: "@yheonatan", color: "#ec4899" },
+  { id: "person3", name: "Roni Lippin", slackId: "@roni", color: "#06b6d4" },
+];
+
+const generateMockWorkouts = (): Workout[] => {
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+  
+  return [
+    // Week 1 - Day 1
+    {
+      id: "w1",
+      date: now - 14 * day,
+      participants: ["person1", "person2", "person3"],
+      records: [
+        { personId: "person1", duration: 45, timestamp: now - 14 * day },
+        { personId: "person2", duration: 38, timestamp: now - 14 * day },
+        { personId: "person3", duration: 52, timestamp: now - 14 * day },
+      ],
+      notes: "First group session!",
+    },
+    // Week 1 - Day 3
+    {
+      id: "w2",
+      date: now - 12 * day,
+      participants: ["person1", "person2"],
+      records: [
+        { personId: "person1", duration: 48, timestamp: now - 12 * day },
+        { personId: "person2", duration: 42, timestamp: now - 12 * day },
+        { personId: "person1", duration: 44, timestamp: now - 12 * day },
+        { personId: "person2", duration: 40, timestamp: now - 12 * day },
+      ],
+      notes: "Double round today",
+    },
+    // Week 1 - Day 5
+    {
+      id: "w3",
+      date: now - 10 * day,
+      participants: ["person1", "person3"],
+      records: [
+        { personId: "person1", duration: 51, timestamp: now - 10 * day },
+        { personId: "person3", duration: 58, timestamp: now - 10 * day },
+      ],
+      notes: "Roni crushing it!",
+    },
+    // Week 2 - Day 1
+    {
+      id: "w4",
+      date: now - 7 * day,
+      participants: ["person1", "person2", "person3"],
+      records: [
+        { personId: "person1", duration: 55, timestamp: now - 7 * day },
+        { personId: "person2", duration: 48, timestamp: now - 7 * day },
+        { personId: "person3", duration: 62, timestamp: now - 7 * day },
+      ],
+      notes: "Week 2 starting strong",
+    },
+    // Week 2 - Day 3
+    {
+      id: "w5",
+      date: now - 5 * day,
+      participants: ["person2", "person3"],
+      records: [
+        { personId: "person2", duration: 52, timestamp: now - 5 * day },
+        { personId: "person3", duration: 65, timestamp: now - 5 * day },
+        { personId: "person2", duration: 49, timestamp: now - 5 * day },
+        { personId: "person3", duration: 60, timestamp: now - 5 * day },
+      ],
+      notes: "Hadar was busy",
+    },
+    // Week 2 - Day 5
+    {
+      id: "w6",
+      date: now - 3 * day,
+      participants: ["person1", "person2", "person3"],
+      records: [
+        { personId: "person1", duration: 58, timestamp: now - 3 * day },
+        { personId: "person2", duration: 55, timestamp: now - 3 * day },
+        { personId: "person3", duration: 70, timestamp: now - 3 * day },
+      ],
+      notes: "New personal bests!",
+    },
+    // Yesterday
+    {
+      id: "w7",
+      date: now - 1 * day,
+      participants: ["person1", "person2", "person3"],
+      records: [
+        { personId: "person1", duration: 62, timestamp: now - 1 * day },
+        { personId: "person2", duration: 58, timestamp: now - 1 * day },
+        { personId: "person3", duration: 75, timestamp: now - 1 * day },
+        { personId: "person1", duration: 55, timestamp: now - 1 * day },
+        { personId: "person2", duration: 51, timestamp: now - 1 * day },
+        { personId: "person3", duration: 68, timestamp: now - 1 * day },
+      ],
+      notes: "Great session, everyone improving!",
+    },
+  ];
+};
+
 // Initial state
 const getInitialState = (): AppState => {
   if (typeof window !== "undefined") {
@@ -95,6 +198,15 @@ const getInitialState = (): AppState => {
         lastReminderSent: parsed.lastReminderSent || "",
       };
     }
+    // No saved data - load mock data for demo
+    return {
+      people: MOCK_PEOPLE,
+      workouts: generateMockWorkouts(),
+      slackWebhook: "",
+      dailyReminderEnabled: false,
+      reminderTime: "12:30",
+      lastReminderSent: "",
+    };
   }
   return {
     people: [],
@@ -1431,7 +1543,7 @@ export default function Home() {
                 {/* Data management */}
                 <div className="pt-6 border-t border-[var(--border)]">
                   <h4 className="font-semibold mb-4">Data Management</h4>
-                  <div className="flex gap-3">
+                  <div className="flex flex-wrap gap-3">
                     <button
                       onClick={() => {
                         const data = JSON.stringify(state, null, 2);
@@ -1446,6 +1558,21 @@ export default function Home() {
                       className="btn-secondary"
                     >
                       Export Data
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm("Load demo data with 3 people and sample workouts?")) {
+                          setState((prev) => ({ 
+                            ...prev,
+                            people: MOCK_PEOPLE,
+                            workouts: generateMockWorkouts(),
+                          }));
+                          showNotification("success", "Demo data loaded!");
+                        }
+                      }}
+                      className="btn-secondary text-emerald-400 border-emerald-400/30 hover:bg-emerald-500/20"
+                    >
+                      Load Demo Data
                     </button>
                     <button
                       onClick={() => {
