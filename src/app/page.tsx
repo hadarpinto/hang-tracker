@@ -23,6 +23,8 @@ import {
   Dumbbell,
   Bell,
   BellOff,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 
 // Types
@@ -232,37 +234,79 @@ export default function Home() {
   const [isCountingDown, setIsCountingDown] = useState(false);
   const [countdownSeconds, setCountdownSeconds] = useState(5);
   const [elapsedInTimerMode, setElapsedInTimerMode] = useState(0); // track actual time in timer mode
+  
+  // Loading state for shared data
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitialLoad = useRef(true);
 
-  // Load state from localStorage
+  // Load state from shared API
   useEffect(() => {
-    const saved = localStorage.getItem("hangtrack-data");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Ensure all fields have defaults
-      setState({
-        people: parsed.people || [],
-        workouts: parsed.workouts || [],
-        slackWebhook: parsed.slackWebhook || "",
-        dailyReminderEnabled: parsed.dailyReminderEnabled ?? false,
-        reminderTime: parsed.reminderTime || "12:30",
-        lastReminderSent: parsed.lastReminderSent || "",
-      });
-    } else {
-      // No saved data - load mock data for demo
-      setState({
-        people: MOCK_PEOPLE,
-        workouts: generateMockWorkouts(),
-        slackWebhook: "",
-        dailyReminderEnabled: false,
-        reminderTime: "12:30",
-        lastReminderSent: "",
-      });
-    }
+    const loadData = async () => {
+      try {
+        const response = await fetch("/api/data");
+        if (response.ok) {
+          const data = await response.json();
+          setState({
+            people: data.people || [],
+            workouts: data.workouts || [],
+            slackWebhook: data.slackWebhook || "",
+            dailyReminderEnabled: data.dailyReminderEnabled ?? false,
+            reminderTime: data.reminderTime || "12:30",
+            lastReminderSent: data.lastReminderSent || "",
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load shared data:", error);
+        // Fallback to mock data if API fails
+        setState({
+          people: MOCK_PEOPLE,
+          workouts: generateMockWorkouts(),
+          slackWebhook: "",
+          dailyReminderEnabled: false,
+          reminderTime: "12:30",
+          lastReminderSent: "",
+        });
+      } finally {
+        setIsLoading(false);
+        isInitialLoad.current = false;
+      }
+    };
+    loadData();
   }, []);
 
-  // Save state to localStorage
+  // Save state to shared API (debounced)
   useEffect(() => {
-    localStorage.setItem("hangtrack-data", JSON.stringify(state));
+    // Skip saving on initial load
+    if (isInitialLoad.current) return;
+    
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    // Debounce save to avoid too many API calls
+    saveTimeoutRef.current = setTimeout(async () => {
+      setIsSaving(true);
+      try {
+        await fetch("/api/data", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(state),
+        });
+      } catch (error) {
+        console.error("Failed to save shared data:", error);
+      } finally {
+        setIsSaving(false);
+      }
+    }, 500); // 500ms debounce
+    
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
   }, [state]);
 
   // Countdown preparation logic
@@ -594,10 +638,31 @@ export default function Home() {
     ),
   };
 
+  // Loading screen
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-grid-pattern relative flex items-center justify-center">
+        <div className="fixed inset-0 bg-radial-glow pointer-events-none" />
+        <div className="glass-card p-8 flex flex-col items-center gap-4 z-10">
+          <Loader2 className="w-12 h-12 text-[var(--accent)] animate-spin" />
+          <p className="text-lg text-[var(--foreground-muted)]">Loading shared data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-grid-pattern relative">
       {/* Background glow */}
       <div className="fixed inset-0 bg-radial-glow pointer-events-none" />
+      
+      {/* Sync indicator */}
+      {isSaving && (
+        <div className="fixed top-4 left-4 z-50 px-3 py-2 rounded-lg flex items-center gap-2 bg-blue-500/20 border border-blue-500/30 text-blue-400 text-sm">
+          <Loader2 size={14} className="animate-spin" />
+          Syncing...
+        </div>
+      )}
       
       {/* Notification */}
       {notification && (
@@ -1565,37 +1630,47 @@ export default function Home() {
                       Export Data
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm("Load demo data with 3 people and sample workouts?")) {
-                          setState((prev) => ({ 
-                            ...prev,
-                            people: MOCK_PEOPLE,
-                            workouts: generateMockWorkouts(),
-                          }));
-                          showNotification("success", "Demo data loaded!");
+                      onClick={async () => {
+                        if (confirm("Reset to demo data? This will replace current data for all users.")) {
+                          setIsLoading(true);
+                          try {
+                            const response = await fetch("/api/data", { method: "DELETE" });
+                            if (response.ok) {
+                              const data = await response.json();
+                              setState(data);
+                              showNotification("success", "Demo data loaded!");
+                            }
+                          } catch {
+                            showNotification("error", "Failed to reset data");
+                          } finally {
+                            setIsLoading(false);
+                          }
                         }
                       }}
                       className="btn-secondary text-emerald-400 border-emerald-400/30 hover:bg-emerald-500/20"
                     >
-                      Load Demo Data
+                      Reset to Demo Data
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm("Are you sure you want to clear all data? This cannot be undone.")) {
-                          setState({ 
-                            people: [], 
-                            workouts: [], 
-                            slackWebhook: "",
-                            dailyReminderEnabled: false,
-                            reminderTime: "12:30",
-                            lastReminderSent: "",
-                          });
-                          showNotification("success", "All data cleared");
+                      onClick={async () => {
+                        setIsLoading(true);
+                        try {
+                          const response = await fetch("/api/data");
+                          if (response.ok) {
+                            const data = await response.json();
+                            setState(data);
+                            showNotification("success", "Data refreshed!");
+                          }
+                        } catch {
+                          showNotification("error", "Failed to refresh data");
+                        } finally {
+                          setIsLoading(false);
                         }
                       }}
-                      className="btn-secondary text-red-400 border-red-400/30 hover:bg-red-500/20"
+                      className="btn-secondary text-blue-400 border-blue-400/30 hover:bg-blue-500/20 flex items-center gap-2"
                     >
-                      Clear All Data
+                      <RefreshCw size={16} />
+                      Refresh Data
                     </button>
                   </div>
                 </div>
